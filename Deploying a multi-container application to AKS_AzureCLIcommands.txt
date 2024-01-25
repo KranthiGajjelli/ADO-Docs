@@ -1,0 +1,37 @@
+LOCATION='eastus'
+
+VERSION=$(az aks get-versions --location $LOCATION --query 'orchestrators[-1].orchestratorVersion' --output tsv); echo $VERSION
+
+RGNAME=az400m16l01a-RG
+az group create --name $RGNAME --location $LOCATION
+
+AKSNAME='az400m16aks'$RANDOM$RANDOM
+az aks create --location $LOCATION --resource-group $RGNAME --name $AKSNAME --enable-addons monitoring --kubernetes-version $VERSION --generate-ssh-keys
+
+SQLNAME='az400m16sql'$RANDOM$RANDOM
+az sql server create --location $LOCATION --resource-group $RGNAME --name $SQLNAME --admin-user sqladmin --admin-password P2ssw0rd1234
+
+az sql db create --resource-group $RGNAME --server $SQLNAME --name mhcdb --service-objective S0 --no-wait
+
+az sql server firewall-rule create --resource-group $RGNAME --server $SQLNAME --name allowAzure --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+
+ACRNAME='az400m16acr'$RANDOM$RANDOM
+az acr create --location $LOCATION --resource-group $RGNAME --name $ACRNAME --sku Standard
+
+# Retrieve the id of the service principal configured for AKS (Replace the $AKSNAME with the actual name of the AKS Cluster that you had created from the previous commands, please check Azure Portal for the same)
+CLIENT_ID=$(az aks show --resource-group $RGNAME --name az400m16aks21750236 --query "identityProfile.kubeletidentity.clientId" --output tsv)
+
+# Retrieve the ACR registry resource id (Replace the $ACRNAME with the actual name of the ACR that you had created from the previous commands, please check Azure Portal for the same)
+ACR_ID=$(az acr show --name az400m16acr208681454 --resource-group $RGNAME --query "id" --output tsv)
+
+# Create role assignment
+az role assignment create --assignee $CLIENT_ID --role acrpull --scope $ACR_ID
+
+echo $(az sql server list --resource-group $RGNAME --query '[].name' --output tsv)'.database.windows.net'
+
+az acr show --name $ACRNAME --resource-group $RGNAME --query "loginServer" --output tsv
+
+2023-04-18T03:33:04.4812489Z ##[error]System.Management.Automation.RuntimeException: No resource found with serverName az400m16sql40765174, serverType Microsoft.Sql/servers in subscription 30b346da-29d1-4af8-aa51-8851b11ee777. Specify the correct serverName/serverType and try again.Check out how to troubleshoot failures at https://aka.ms/sqlazuredeployreadme#troubleshooting-
+
+
+2023-04-18T03:40:18.0193337Z ##[error]System.Management.Automation.RuntimeException: No resource found with serverName az400m16sql40765174, serverType Microsoft.Sql/servers in subscription 30b346da-29d1-4af8-aa51-8851b11ee777. Specify the correct serverName/serverType and try again.Check out how to troubleshoot failures at https://aka.ms/sqlazuredeployreadme#troubleshooting-
