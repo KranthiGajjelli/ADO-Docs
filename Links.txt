@@ -1,0 +1,3 @@
+When you get an error like below while commiting the source code/while running the Azure CI/CD pipelines:
+No hosted parallelism has been purchased or granted. To request a free parallelism grant, please fill out the following form:
+https://aka.ms/azpipelines-parallelism-request
